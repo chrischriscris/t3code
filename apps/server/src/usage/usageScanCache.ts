@@ -309,9 +309,10 @@ export function decodeScanCache(
     ) {
       continue;
     }
-    // Older stateful reducers have different semantics. Keep their history for deleted rollouts,
-    // but force live files to re-parse: no file has size -1 and a zero position cannot resume.
-    const legacy = format.state !== undefined && version < USAGE_SCAN_CACHE_VERSION;
+    // Keep history for deleted rollouts, but re-parse incompatible reducer state.
+    // Only Codex requires new provenance state in v7.
+    const legacy =
+      format.state !== undefined && (version < 6 || (entry.p === "codex" && version < 7));
     // A corrupt state disqualifies the entry: resuming with it would attach
     // appended usage to the wrong model or replay fork-copied history.
     if (!legacy && !isValidState.get(entry.p)?.(entry.cs)) continue;
