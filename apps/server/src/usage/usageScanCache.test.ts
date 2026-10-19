@@ -165,7 +165,7 @@ describe("scan cache round trip", () => {
   });
 
   it.each([5, 6])(
-    "retains v%s history and stateless positions but invalidates obsolete Codex state",
+    "retains v%s history and compatible positions but invalidates obsolete state",
     (version) => {
       const original = cacheWith([["/gone.jsonl", 100, [record({ speed: "fast" })]]]);
       original.set("/gone-codex.jsonl", {
@@ -184,6 +184,14 @@ describe("scan cache round trip", () => {
             forkCopyAnchorMs: 0,
           },
         }),
+      });
+      original.set("/gone-pi.jsonl", {
+        ...original.get("/gone.jsonl")!,
+        size: 256,
+        provider: "pi",
+        records: [record({ provider: "pi", model: "anthropic/claude-fable-5" })],
+        malformedRecords: 3,
+        position: position({ state: { sessionId: "session-a" } }),
       });
       const encoded = encodeScanCache(original);
       const entry = encoded.files["/gone.jsonl"]!;
@@ -213,6 +221,15 @@ describe("scan cache round trip", () => {
         size: -1,
         position: { resumeOffset: 0, guardLength: 0, guardHash: 0, state: null },
       });
+      expect(restored.get("/gone-pi.jsonl")).toEqual(
+        version === 6
+          ? original.get("/gone-pi.jsonl")
+          : {
+              ...original.get("/gone-pi.jsonl"),
+              size: -1,
+              position: { resumeOffset: 0, guardLength: 0, guardHash: 0, state: null },
+            },
+      );
     },
   );
 
